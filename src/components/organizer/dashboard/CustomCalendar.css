@@ -1,0 +1,60 @@
+/* Make calendar modern */
+.modern-calendar {
+  border-radius: 1rem;
+  border: 1px solid #e5e7eb; /* light gray border */
+  padding: 1rem;
+  background-color: #ffffff;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+  font-family: 'Inter', sans-serif;
+}
+
+/* Header styling */
+.modern-calendar .react-calendar__navigation {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.modern-calendar .react-calendar__navigation button {
+  background-color: #b91c1c; /* Tailwind red-700 */
+  color: white;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.modern-calendar .react-calendar__navigation button:hover {
+  background-color: #b91c1c; /* Tailwind red-700 */
+}
+
+/* Weekdays styling */
+.modern-calendar .react-calendar__month-view__weekdays {
+  text-transform: uppercase;
+  font-weight: 600;
+  color: #6b7280; /* Tailwind gray-500 */
+  margin-bottom: 0.5rem;
+}
+
+/* Days styling */
+.modern-calendar .react-calendar__tile {
+  border-radius: 0.5rem;
+  transition: all 0.2s;
+}
+
+.modern-calendar .react-calendar__tile:hover {
+  background-color: #fef2f2; /* Tailwind red-50 */
+  transform: translateY(-2px);
+}
+
+.modern-calendar .react-calendar__tile--active {
+  background-color: #b91c1c; /* Tailwind red-700 */
+  color: white;
+  font-weight: bold;
+}
+
+/* Today styling */
+.modern-calendar .react-calendar__tile--now {
+  border: 2px solid #b91c1c;
+  font-weight: bold;
+}

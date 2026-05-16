@@ -1,0 +1,54 @@
+[
+  {
+    "id": 1,
+    "category": "Academic",
+    "type": "Announcements",
+    "color": "bg-[#a22c36]",
+    "title": "Midterm Examination Schedule for AY 2024–2025",
+    "desc": "The midterm examinations will be conducted from September 29 to October 3, 2025. Students are advised to check their respective department schedules for specific exam times.",
+    "tags": ["Registrar’s Office", "All Students"],
+    "time": "2 hours ago",
+    "date": "Sept 29–Oct 3, 2025",
+    "status": "Past",
+    "department": "All Department"
+  },
+  {
+    "id": 2,
+    "category": "Organizations",
+    "type": "Events",
+    "color": "bg-green-600",
+    "title": "CCS Tech Summit 2025 – Call for Volunteers",
+    "desc": "The College of Computing is organizing the annual Tech Summit. We’re looking for enthusiastic volunteers to help make this event successful!",
+    "tags": ["CCS Student Council"],
+    "time": "5 hours ago",
+    "date": "Nov 15, 2025",
+    "status": "Upcoming",
+    "department": "CCS"
+  },
+  {
+    "id": 3,
+    "category": "Non-Academic",
+    "type": "Announcements",
+    "color": "bg-yellow-500",
+    "title": "Annual Intramurals 2025 Registration Now Open",
+    "desc": "Sign up for this year’s intramurals! Various sports categories available including basketball, volleyball, badminton, and chess. Registration deadline: September 25, 2025.",
+    "tags": ["Sports Development Office"],
+    "time": "1 day ago",
+    "date": "Oct 20–24, 2025",
+    "status": "Open for Registration",
+    "department": "All Department"
+  },
+  {
+    "id": 4,
+    "category": "Organizations",
+    "type": "Events",
+    "color": "bg-blue-600",
+    "title": "CCIS Hackathon 2025: Code for Innovation",
+    "desc": "Join us for the most exciting coding competition of the year! The CCIS Hackathon 2025 brings together the brightest minds in computer science to solve real-world problems through innovative technology solutions.",
+    "tags": ["CCIS Department", "Hackathon"],
+    "time": "3 hours ago",
+    "date": "Nov 20, 2025",
+    "status": "Upcoming",
+    "department": "CCS"
+  }
+]
