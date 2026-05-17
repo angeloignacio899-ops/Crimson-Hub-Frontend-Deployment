@@ -4,6 +4,7 @@ import Button from "./Button";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { useError } from "../../context/ErrorContext";
+import { useGoogleInit } from "../../hooks/useGoogleInit";
 
 export default function SignupForm({ onFlip }) {
   const [form, setForm] = useState({
@@ -59,30 +60,21 @@ export default function SignupForm({ onFlip }) {
   };
 
   // =========================================================
-  // 🚀 INITIALIZE AND RENDER GOOGLE BUTTON (Runs once on mount)
+  // 🚀 RENDER GOOGLE BUTTON ONLY (No duplicate initialization)
   // =========================================================
-  useEffect(() => {
-    /* global google */
-    if (window.google) {
-      // 1. Initialize the Google Identity Service
-      google.accounts.id.initialize({
-        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-        callback: handleGoogleResponse,
-      });
+  useGoogleInit('signup-form', handleGoogleResponse);
 
-      // 2. Render the Standard Button
+  useEffect(() => {
+    if (window.google && document.getElementById("googleSignUpButton")) {
       google.accounts.id.renderButton(
         document.getElementById("googleSignUpButton"), 
         { 
-            theme: "outline", 
-            size: "large", 
-            type: "standard",
-            width: "360"
+          theme: "outline", 
+          size: "large", 
+          type: "standard",
+          width: "360"
         }
       );
-    } else {
-        // Fallback for when the GIS script hasn't loaded
-        console.warn("Google Identity Services script not yet loaded.");
     }
   }, []);
 

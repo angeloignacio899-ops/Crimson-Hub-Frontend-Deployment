@@ -74,7 +74,7 @@ export default function LoginPage() {
       {/* Background overlay */}
       <div
         className="absolute inset-0 bg-center bg-cover opacity-20"
-        style={{ backgroundImage: "url('/bg-logo.png')" }}
+        style={{ backgroundImage: "url('/bg-logo.svg')" }}
       ></div>
 
       {/* Auth card container */}

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Background -->
+  <rect width="200" height="200" fill="white"/>
+  
+  <!-- Crimson circle -->
+  <circle cx="100" cy="100" r="95" fill="none" stroke="#C8102E" stroke-width="2"/>
+  
+  <!-- Crimson badge/shield shape -->
+  <path d="M 100 40 L 140 60 L 140 100 Q 100 140 100 150 Q 100 140 60 100 L 60 60 Z" 
+        fill="#C8102E" opacity="0.8"/>
+  
+  <!-- Center initials/text -->
+  <text x="100" y="120" font-family="Poppins, Arial" font-size="48" font-weight="bold" 
+        fill="white" text-anchor="middle" dominant-baseline="middle">
+    CEH
+  </text>
+  
+  <!-- Event icon (calendar) -->
+  <rect x="70" y="35" width="60" height="50" fill="none" stroke="#C8102E" stroke-width="1.5" rx="3"/>
+  <line x1="80" y1="35" x2="80" y2="50"/>
+  <line x1="120" y1="35" x2="120" y2="50"/>
+  <line x1="70" y1="45" x2="130" y2="45"/>
+</svg>

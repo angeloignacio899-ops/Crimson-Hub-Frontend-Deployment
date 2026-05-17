@@ -1,10 +1,11 @@
 import { Mail, KeyRound, Eye, EyeOff } from "lucide-react";
-import { useState, useEffect } from "react"; // 💡 Import useEffect
+import { useState, useEffect } from "react";
 import Button from "./Button";
 import { FcGoogle } from "react-icons/fc";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useError } from "../../context/ErrorContext";
+import { useGoogleInit } from "../../hooks/useGoogleInit";
 
 export default function LoginForm({ onFlip, setIsLoading, onLoginSuccess, onForgotPasswordClick }) {
   const [form, setForm] = useState({ email: "", password: "" });
@@ -12,6 +13,9 @@ export default function LoginForm({ onFlip, setIsLoading, onLoginSuccess, onForg
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const { showError } = useError();
+
+  // ✅ Use the global Google initialization hook
+  useGoogleInit();
 
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -49,39 +53,23 @@ export default function LoginForm({ onFlip, setIsLoading, onLoginSuccess, onForg
   };
 
   // =========================================================
-  // 🚀 INITIALIZE AND RENDER GOOGLE BUTTON (Runs once on mount)
+  // 🚀 RENDER GOOGLE BUTTON ONLY (No duplicate initialization)
   // =========================================================
-  useEffect(() => {
-    /* global google */
-    if (window.google) {
-      // 1. Initialize the Google Identity Service
-      google.accounts.id.initialize({
-        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-        callback: handleGoogleResponse,
-        // auto_select: true, // You can comment this out if you only want the button, but it enables one-tap
-      });
+  useGoogleInit('login-form', handleGoogleResponse);
 
-      // 2. Render the Standard Button (The Reliable Fallback)
-      // This button will replace the contents of the element with ID 'googleSignInButton'
+  useEffect(() => {
+    if (window.google && document.getElementById("googleSignInButton")) {
       google.accounts.id.renderButton(
         document.getElementById("googleSignInButton"), 
         { 
-            theme: "outline", 
-            size: "large", 
-            type: "standard", // Use standard type for the look and feel
-            width: "360" // Set width to fill container, adjust as needed
+          theme: "outline", 
+          size: "large", 
+          type: "standard",
+          width: "360"
         }
       );
-
-      // 3. Display the One-Tap Prompt (Optional: Removed the prompt call 
-      // from the onClick handler and place it here to run once.)
-      // google.accounts.id.prompt(); 
-
-    } else {
-        // Fallback for when the GIS script hasn't loaded
-        console.warn("Google Identity Services script not yet loaded.");
     }
-  }, []); // Empty dependency array ensures it runs only once
+  }, []);
 
   // =========================================================
   // NORMAL LOGIN (Keep this logic)
