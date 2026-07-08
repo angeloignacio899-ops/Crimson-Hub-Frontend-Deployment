@@ -13,6 +13,8 @@ const SettingContent = () => {
   const [archivedData, setArchivedData] = useState([]);
   const [loadingArchived, setLoadingArchived] = useState(true);
   const [archivedError, setArchivedError] = useState("");
+  const [archivedPage, setArchivedPage] = useState(1);
+  const [archivedTotalPages, setArchivedTotalPages] = useState(1);
 
   // Category states
   const [categories, setCategories] = useState([]);
@@ -42,10 +44,20 @@ const SettingContent = () => {
       const token = localStorage.getItem("token");
       if (!token) {
         setArchivedError("You must be logged in.");
+        setArchivedData([]);
         return;
       }
 
-      const res = await fetch(window.API_BASE + "/api/archived", {
+      const params = new URLSearchParams({
+        page: archivedPage.toString(),
+        pageSize: "10",
+      });
+
+      if (archivedFilter !== "all") {
+        params.set("type", archivedFilter);
+      }
+
+      const res = await fetch(`${window.API_BASE}/api/archived?${params.toString()}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -54,12 +66,15 @@ const SettingContent = () => {
       const data = await res.json();
       if (data.success && Array.isArray(data.items)) {
         setArchivedData(data.items);
+        setArchivedTotalPages(data.pagination?.totalPages || 1);
       } else {
         setArchivedData([]);
+        setArchivedTotalPages(1);
       }
     } catch (err) {
       setArchivedError(err.message);
       setArchivedData([]);
+      setArchivedTotalPages(1);
     } finally {
       setLoadingArchived(false);
     }
@@ -220,13 +235,20 @@ const SettingContent = () => {
 
   // ================== EFFECTS ==================
   useEffect(() => {
-    fetchArchived();
     fetchCategories();
   }, []);
 
-  const filteredArchived = archivedData.filter(item =>
-    archivedFilter === "all" ? true : item.type === archivedFilter
-  );
+  useEffect(() => {
+    if (activeTab === "archive") {
+      fetchArchived();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [archivedFilter, archivedPage, activeTab]);
+
+  const handleArchiveFilterChange = (filter) => {
+    setArchivedFilter(filter);
+    setArchivedPage(1);
+  };
 
   return (
     <div className="flex-1 overflow-y-auto h-[calc(100vh-2rem)] p-6 bg-gray-50">
@@ -271,7 +293,7 @@ const SettingContent = () => {
             <select
               className="border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-500"
               value={archivedFilter}
-              onChange={e => setArchivedFilter(e.target.value)}
+              onChange={e => handleArchiveFilterChange(e.target.value)}
             >
               <option value="all">All</option>
               <option value="Event">Events</option>
@@ -297,8 +319,8 @@ const SettingContent = () => {
 
                 {/* Rows */}
                 <div className="divide-y divide-gray-200">
-                  {filteredArchived.length > 0 ? (
-                    filteredArchived.map((item, index) => (
+                  {archivedData.length > 0 ? (
+                    archivedData.map((item, index) => (
                       <div
                         key={item.id || index}
                         className="grid grid-cols-12 gap-4 items-center p-4 hover:bg-gray-50 transition"
@@ -325,6 +347,31 @@ const SettingContent = () => {
                     </div>
                   )}
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Pagination controls */}
+          {!loadingArchived && !archivedError && archivedTotalPages > 1 && (
+            <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <p className="text-sm text-gray-600">
+                Page {archivedPage} of {archivedTotalPages}
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setArchivedPage((prev) => Math.max(1, prev - 1))}
+                  disabled={archivedPage <= 1}
+                  className="px-4 py-2 rounded bg-gray-200 text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={() => setArchivedPage((prev) => Math.min(archivedTotalPages, prev + 1))}
+                  disabled={archivedPage >= archivedTotalPages}
+                  className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
               </div>
             </div>
           )}
