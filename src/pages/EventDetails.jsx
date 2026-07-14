@@ -232,6 +232,21 @@ export default function EventDetails() {
           <div className="mt-8">
             <EventDetailsSection event={event} />
           </div>
+
+          {event.event_link && (
+            <div className="mt-8 bg-white w-full p-6 rounded-xl shadow-sm border border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-800 mb-3">Event Link</h2>
+              <a
+                href={event.event_link}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="inline-block text-red-600 hover:text-red-800 underline break-words"
+              >
+                {event.event_link}
+              </a>
+            </div>
+          )}
+
           <div className="mt-8">
             <AttachmentFile event={event} />
           </div>
