@@ -18,8 +18,11 @@ const SettingContent = () => {
 
   // Category states
   const [categories, setCategories] = useState([]);
+  const [announcementCategories, setAnnouncementCategories] = useState([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
+  const [loadingAnnouncementCategories, setLoadingAnnouncementCategories] = useState(true);
   const [categoryError, setCategoryError] = useState("");
+  const [announcementCategoryError, setAnnouncementCategoryError] = useState("");
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
   const [categoryForm, setCategoryForm] = useState({
@@ -140,6 +143,39 @@ const SettingContent = () => {
     }
   };
 
+  const fetchAnnouncementCategories = async () => {
+    try {
+      setLoadingAnnouncementCategories(true);
+      setAnnouncementCategoryError("");
+
+      const res = await fetch(`${window.API_BASE}/api/announcements/approved`);
+      if (!res.ok) throw new Error("Server error: " + res.status);
+
+      const data = await res.json();
+      const grouped = new Map();
+
+      (Array.isArray(data) ? data : []).forEach((item) => {
+        const name = item.category?.trim();
+        if (!name) return;
+
+        if (!grouped.has(name)) {
+          grouped.set(name, { name, count: 0 });
+        }
+
+        grouped.get(name).count += 1;
+      });
+
+      setAnnouncementCategories(
+        Array.from(grouped.values()).sort((a, b) => a.name.localeCompare(b.name))
+      );
+    } catch (err) {
+      setAnnouncementCategoryError(err.message);
+      setAnnouncementCategories([]);
+    } finally {
+      setLoadingAnnouncementCategories(false);
+    }
+  };
+
   const handleAddCategory = async (e) => {
     e.preventDefault();
     
@@ -236,6 +272,7 @@ const SettingContent = () => {
   // ================== EFFECTS ==================
   useEffect(() => {
     fetchCategories();
+    fetchAnnouncementCategories();
   }, []);
 
   useEffect(() => {
@@ -392,67 +429,122 @@ const SettingContent = () => {
             </button>
           </div>
 
-          {/* Loading / Error */}
-          {loadingCategories && <p className="text-gray-500">Loading categories...</p>}
-          {categoryError && <p className="text-red-500">{categoryError}</p>}
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-semibold text-gray-800">Event Categories</h3>
+              <p className="text-sm text-gray-500">Managed for event submissions and filtering.</p>
+            </div>
 
-          {/* Categories Table */}
-          {!loadingCategories && !categoryError && (
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="bg-gray-100 border-b-2 border-gray-300">
-                    <th className="px-6 py-3 text-left font-semibold text-gray-700">Category Name</th>
-                    <th className="px-6 py-3 text-left font-semibold text-gray-700">Description</th>
-                    <th className="px-6 py-3 text-center font-semibold text-gray-700">Events Count</th>
-                    <th className="px-6 py-3 text-center font-semibold text-gray-700">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {categories.length > 0 ? (
-                    categories.map((category, index) => (
-                      <tr
-                        key={category.category_id}
-                        className={`border-b border-gray-200 hover:bg-gray-50 transition ${
-                          index % 2 === 0 ? "bg-white" : "bg-gray-50"
-                        }`}
-                      >
-                        <td className="px-6 py-4 font-medium text-gray-800">{category.category_name}</td>
-                        <td className="px-6 py-4 text-gray-600 text-sm">{category.description || "—"}</td>
-                        <td className="px-6 py-4 text-center">
-                          <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm font-semibold">
-                            {category.event_count || 0}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-center flex justify-center gap-3">
-                          <button
-                            onClick={() => openEditCategory(category)}
-                            className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded transition text-sm font-medium"
-                            title="Edit category"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => handleDeleteCategory(category.category_id)}
-                            className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded transition text-sm font-medium"
-                            title="Delete category"
-                          >
-                            Delete
-                          </button>
+            {/* Loading / Error */}
+            {loadingCategories && <p className="text-gray-500">Loading event categories...</p>}
+            {categoryError && <p className="text-red-500">{categoryError}</p>}
+
+            {/* Event Categories Table */}
+            {!loadingCategories && !categoryError && (
+              <div className="overflow-x-auto border border-gray-200 rounded-lg">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="bg-gray-100 border-b border-gray-300">
+                      <th className="px-6 py-3 text-left font-semibold text-gray-700">Category Name</th>
+                      <th className="px-6 py-3 text-left font-semibold text-gray-700">Description</th>
+                      <th className="px-6 py-3 text-center font-semibold text-gray-700">Events Count</th>
+                      <th className="px-6 py-3 text-center font-semibold text-gray-700">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {categories.length > 0 ? (
+                      categories.map((category, index) => (
+                        <tr
+                          key={category.category_id}
+                          className={`border-b border-gray-200 hover:bg-gray-50 transition ${
+                            index % 2 === 0 ? "bg-white" : "bg-gray-50"
+                          }`}
+                        >
+                          <td className="px-6 py-4 font-medium text-gray-800">{category.category_name}</td>
+                          <td className="px-6 py-4 text-gray-600 text-sm">{category.description || "—"}</td>
+                          <td className="px-6 py-4 text-center">
+                            <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm font-semibold">
+                              {category.event_count || 0}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-center flex justify-center gap-3">
+                            <button
+                              onClick={() => openEditCategory(category)}
+                              className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded transition text-sm font-medium"
+                              title="Edit category"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDeleteCategory(category.category_id)}
+                              className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded transition text-sm font-medium"
+                              title="Delete category"
+                            >
+                              Delete
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="4" className="p-8 text-gray-500 text-center">
+                          No event categories found. Create one to get started!
                         </td>
                       </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan="4" className="p-8 text-gray-500 text-center">
-                        No categories found. Create one to get started!
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-semibold text-gray-800">Announcement Categories</h3>
+              <p className="text-sm text-gray-500">Listed from existing announcements.</p>
             </div>
-          )}
+
+            {loadingAnnouncementCategories && <p className="text-gray-500">Loading announcement categories...</p>}
+            {announcementCategoryError && <p className="text-red-500">{announcementCategoryError}</p>}
+
+            {!loadingAnnouncementCategories && !announcementCategoryError && (
+              <div className="overflow-x-auto border border-gray-200 rounded-lg">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="bg-gray-100 border-b border-gray-300">
+                      <th className="px-6 py-3 text-left font-semibold text-gray-700">Category Name</th>
+                      <th className="px-6 py-3 text-left font-semibold text-gray-700">Announcements Count</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {announcementCategories.length > 0 ? (
+                      announcementCategories.map((category, index) => (
+                        <tr
+                          key={category.name}
+                          className={`border-b border-gray-200 hover:bg-gray-50 transition ${
+                            index % 2 === 0 ? "bg-white" : "bg-gray-50"
+                          }`}
+                        >
+                          <td className="px-6 py-4 font-medium text-gray-800">{category.name}</td>
+                          <td className="px-6 py-4 text-gray-600 text-sm">
+                            <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-semibold">
+                              {category.count}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="2" className="p-8 text-gray-500 text-center">
+                          No announcement categories found yet.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </section>
       )}
 
