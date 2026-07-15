@@ -11,6 +11,12 @@ export default function LoginForm({ onFlip, setIsLoading, onLoginSuccess, onForg
   const [form, setForm] = useState({ email: "", password: "" });
   const [message, setMessage] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showMfaModal, setShowMfaModal] = useState(false);
+  const [mfaCode, setMfaCode] = useState("");
+  const [mfaError, setMfaError] = useState("");
+  const [generatedMfaCode, setGeneratedMfaCode] = useState("");
+  const [pendingLogin, setPendingLogin] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
   const { showError } = useError();
 
@@ -71,12 +77,25 @@ export default function LoginForm({ onFlip, setIsLoading, onLoginSuccess, onForg
     }
   }, []);
 
+  const generateMfaCode = () => {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+  };
+
+  const openMfaModal = (loginPayload) => {
+    const code = generateMfaCode();
+    setGeneratedMfaCode(code);
+    setPendingLogin(loginPayload);
+    setMfaCode("");
+    setMfaError("");
+    setShowMfaModal(true);
+  };
+
   // =========================================================
   // NORMAL LOGIN (Keep this logic)
   // =========================================================
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // ... (Your handleSubmit logic remains the same) ...
     setMessage("");
     setIsLoading(true);
 
@@ -84,18 +103,7 @@ export default function LoginForm({ onFlip, setIsLoading, onLoginSuccess, onForg
       const res = await axios.post(window.API_BASE + "/api/auth/login", form);
       const { token, user } = res.data;
 
-      localStorage.setItem("token", token);
-      localStorage.setItem("role_id", user.role_id);
-
-      setMessage("Login successful! Redirecting...");
-
-      if (user.role_id === 3) {
-        navigate("/admin/dashboard");
-      } else if (user.role_id === 1) {
-        navigate("/homepage");
-      } else if (user.role_id === 2) {
-        navigate("/organizer/dashboard")
-      }
+      openMfaModal({ token, user });
     } catch (err) {
       if (!err.response) {
         setMessage("Server unreachable. Check backend.");
@@ -105,6 +113,42 @@ export default function LoginForm({ onFlip, setIsLoading, onLoginSuccess, onForg
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleMfaSubmit = () => {
+    const normalizedCode = mfaCode.trim().toUpperCase();
+
+    if (!/^[A-Z0-9]{6}$/.test(normalizedCode)) {
+      setMfaError("Please enter a 6-character code using letters or numbers.");
+      return;
+    }
+
+    if (normalizedCode !== generatedMfaCode.toUpperCase()) {
+      setMfaError("The verification code is incorrect.");
+      return;
+    }
+
+    if (!pendingLogin) return;
+
+    setIsSubmitting(true);
+    setMfaError("");
+
+    const { token, user } = pendingLogin;
+    localStorage.setItem("token", token);
+    localStorage.setItem("role_id", user.role_id);
+
+    setMessage("Login successful! Redirecting...");
+    setShowMfaModal(false);
+
+    if (user.role_id === 3) {
+      navigate("/admin/dashboard");
+    } else if (user.role_id === 1) {
+      navigate("/homepage");
+    } else if (user.role_id === 2) {
+      navigate("/organizer/dashboard");
+    }
+
+    setIsSubmitting(false);
   };
 
 
@@ -166,6 +210,54 @@ export default function LoginForm({ onFlip, setIsLoading, onLoginSuccess, onForg
       />
 
       {message && <p className="text-sm text-center text-red-600">{message}</p>}
+
+      {showMfaModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <h3 className="text-xl font-semibold text-gray-800">Two-step verification</h3>
+            <p className="mt-2 text-sm text-gray-600">
+              Enter the 6-character code shown below to complete your sign in.
+            </p>
+
+            <div className="my-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-center text-xl font-semibold tracking-[0.35em] text-red-700">
+              {generatedMfaCode}
+            </div>
+
+            <input
+              type="text"
+              value={mfaCode}
+              onChange={(e) => setMfaCode(e.target.value.toUpperCase())}
+              placeholder="Enter 6-character code"
+              maxLength={6}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
+            />
+
+            {mfaError && <p className="mt-2 text-sm text-red-600">{mfaError}</p>}
+
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setMfaError("");
+                  const code = generateMfaCode();
+                  setGeneratedMfaCode(code);
+                }}
+                className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+              >
+                Resend Code
+              </button>
+              <button
+                type="button"
+                onClick={handleMfaSubmit}
+                disabled={isSubmitting}
+                className="rounded-lg bg-[#C8102E] px-3 py-2 text-sm font-semibold text-white hover:bg-[#a00e25] disabled:opacity-60"
+              >
+                {isSubmitting ? "Verifying..." : "Verify"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   );
 }
