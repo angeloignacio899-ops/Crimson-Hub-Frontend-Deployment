@@ -19,6 +19,11 @@ export default function SignupForm({ onFlip }) {
 
   const [message, setMessage] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
+  const [generatedCode, setGeneratedCode] = useState("");
+  const [enteredVerificationCode, setEnteredVerificationCode] = useState("");
+  const [verificationError, setVerificationError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
   const { showError } = useError();
 
@@ -78,13 +83,55 @@ export default function SignupForm({ onFlip }) {
     }
   }, []);
 
-  const handleSubmit = async (e) => {
+  const generateVerificationCode = () => {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+  };
+
+  const openVerificationModal = () => {
+    const code = generateVerificationCode();
+    setGeneratedCode(code);
+    setEnteredVerificationCode("");
+    setVerificationError("");
+    setShowVerificationModal(true);
+  };
+
+  const handleSubmit = (e) => {
     e.preventDefault();
+
+    if (!form.firstname.trim() || !form.lastname.trim() || !form.email.trim() || !form.department.trim() || !form.phone.trim() || !form.password.trim()) {
+      setMessage("Please fill in all fields before continuing.");
+      return;
+    }
+
+    setMessage("");
+    openVerificationModal();
+  };
+
+  const handleVerifyAndSubmit = async () => {
+    const normalizedCode = enteredVerificationCode.trim().toUpperCase();
+
+    if (!/^[A-Z0-9]{6}$/.test(normalizedCode)) {
+      setVerificationError("Please enter a 6-character code using letters or numbers.");
+      return;
+    }
+
+    if (normalizedCode !== generatedCode.toUpperCase()) {
+      setVerificationError("The verification code you entered is incorrect.");
+      return;
+    }
+
     try {
+      setIsSubmitting(true);
+      setVerificationError("");
       const res = await axios.post(window.API_BASE + "/api/auth/signup", form);
+      setShowVerificationModal(false);
       setMessage(res.data.msg);
     } catch (err) {
+      setShowVerificationModal(false);
       setMessage(err.response?.data?.msg || "Signup failed");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -231,6 +278,68 @@ export default function SignupForm({ onFlip }) {
       />
 
       {message && <p className="text-sm text-gray-700 text-center">{message}</p>}
+
+      {showVerificationModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <div className="flex items-center gap-2 mb-4">
+              <Mail className="text-[#C8102E]" size={22} />
+              <h3 className="text-xl font-semibold text-gray-800">Verify your email</h3>
+            </div>
+
+            <p className="text-sm text-gray-600">
+              We’ve prepared a 6-character verification code for <span className="font-medium text-gray-800">{form.email || "your email"}</span>.
+              Enter it below to complete your sign up.
+            </p>
+
+            <div className="my-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-center text-xl font-semibold tracking-[0.35em] text-red-700">
+              {generatedCode}
+            </div>
+
+            <input
+              type="text"
+              value={enteredVerificationCode}
+              onChange={(e) => setEnteredVerificationCode(e.target.value.toUpperCase())}
+              placeholder="Enter 6-digit code"
+              maxLength={6}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
+            />
+
+            {verificationError && <p className="mt-2 text-sm text-red-600">{verificationError}</p>}
+
+            <div className="mt-5 flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setVerificationError("");
+                  openVerificationModal();
+                }}
+                className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+              >
+                Resend Code
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowVerificationModal(false);
+                  setVerificationError("");
+                }}
+                className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleVerifyAndSubmit}
+                disabled={isSubmitting}
+                className="rounded-lg bg-[#C8102E] px-3 py-2 text-sm font-semibold text-white hover:bg-[#a00e25] disabled:opacity-60"
+              >
+                {isSubmitting ? "Verifying..." : "Verify & Sign Up"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   );
 }
