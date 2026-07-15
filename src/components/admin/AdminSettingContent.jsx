@@ -566,7 +566,7 @@ const SettingContent = () => {
                 className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg transition font-medium"
               >
                 <Plus size={18} />
-                Add Category
+                Add Announcement Category
               </button>
             </div>
 
