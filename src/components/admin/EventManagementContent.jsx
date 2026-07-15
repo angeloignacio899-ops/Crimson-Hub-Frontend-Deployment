@@ -119,6 +119,7 @@ const EventManagementContent = () => {
     const { showError } = useError();
     const navigate = useNavigate();
     const [events, setEvents] = useState([]);
+    const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('All Categories');
@@ -127,25 +128,37 @@ const EventManagementContent = () => {
     const [selectedEvent, setSelectedEvent] = useState(null);
 
     useEffect(() => {
-        const fetchEvents = async () => {
+        const fetchData = async () => {
             try {
-            const token = localStorage.getItem("token"); // or wherever you store your JWT
-            const response = await fetch(window.API_BASE + "/api/events", {
-                headers: {
-                Authorization: `Bearer ${token}`,
-                },
-            });
-            if (!response.ok) throw new Error("Failed to fetch events");
-            const data = await response.json();
-            setEvents(data);
+                const token = localStorage.getItem("token");
+                const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+                const [eventsResponse, categoriesResponse] = await Promise.all([
+                    fetch(`${window.API_BASE}/api/events`, { headers }),
+                    fetch(`${window.API_BASE}/api/categories`, { headers }),
+                ]);
+
+                if (!eventsResponse.ok) throw new Error("Failed to fetch events");
+                if (!categoriesResponse.ok) throw new Error("Failed to fetch categories");
+
+                const [eventsData, categoriesData] = await Promise.all([
+                    eventsResponse.json(),
+                    categoriesResponse.json(),
+                ]);
+
+                setEvents(Array.isArray(eventsData) ? eventsData : []);
+                setCategories(Array.isArray(categoriesData) ? categoriesData : []);
             } catch (err) {
-            console.error(err);
+                console.error(err);
+                setEvents([]);
+                setCategories([]);
             } finally {
-            setLoading(false);
+                setLoading(false);
             }
         };
-        fetchEvents();
-        }, []);
+
+        fetchData();
+    }, []);
 
 
     const handleCreateEvent = () => navigate('/admin/eventpage/eventsubmission');
@@ -212,10 +225,12 @@ const EventManagementContent = () => {
                     value={categoryFilter}
                     onChange={(e) => setCategoryFilter(e.target.value)}
                 >
-                    <option>All Categories</option>
-                    <option>Academic</option>
-                    <option>Non-Academic</option>
-                    <option>Sports</option>
+                    <option value="All Categories">All Categories</option>
+                    {categories.map((category) => (
+                        <option key={category.category_id} value={category.category_name}>
+                            {category.category_name}
+                        </option>
+                    ))}
                 </select>
             </div>
 
