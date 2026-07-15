@@ -24,10 +24,14 @@ const SettingContent = () => {
   const [categoryError, setCategoryError] = useState("");
   const [announcementCategoryError, setAnnouncementCategoryError] = useState("");
   const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [showAnnouncementCategoryModal, setShowAnnouncementCategoryModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
   const [categoryForm, setCategoryForm] = useState({
     name: "",
     description: ""
+  });
+  const [announcementCategoryForm, setAnnouncementCategoryForm] = useState({
+    name: ""
   });
 
   // Archive Modal state
@@ -143,6 +147,23 @@ const SettingContent = () => {
     }
   };
 
+  const getStoredAnnouncementCategories = () => {
+    try {
+      const stored = localStorage.getItem("announcementCategories");
+      if (!stored) return [];
+
+      const parsed = JSON.parse(stored);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (err) {
+      console.error("Failed to parse stored announcement categories", err);
+      return [];
+    }
+  };
+
+  const saveAnnouncementCategories = (categories) => {
+    localStorage.setItem("announcementCategories", JSON.stringify(categories));
+  };
+
   const fetchAnnouncementCategories = async () => {
     try {
       setLoadingAnnouncementCategories(true);
@@ -152,25 +173,34 @@ const SettingContent = () => {
       if (!res.ok) throw new Error("Server error: " + res.status);
 
       const data = await res.json();
+      const storedCategories = getStoredAnnouncementCategories();
       const grouped = new Map();
+
+      storedCategories.forEach((category) => {
+        grouped.set(category.name.toLowerCase(), {
+          name: category.name,
+          count: Number(category.count) || 0,
+        });
+      });
 
       (Array.isArray(data) ? data : []).forEach((item) => {
         const name = item.category?.trim();
         if (!name) return;
 
-        if (!grouped.has(name)) {
-          grouped.set(name, { name, count: 0 });
+        const key = name.toLowerCase();
+        if (!grouped.has(key)) {
+          grouped.set(key, { name, count: 0 });
         }
 
-        grouped.get(name).count += 1;
+        grouped.get(key).count += 1;
       });
 
-      setAnnouncementCategories(
-        Array.from(grouped.values()).sort((a, b) => a.name.localeCompare(b.name))
-      );
+      const sortedCategories = Array.from(grouped.values()).sort((a, b) => a.name.localeCompare(b.name));
+      setAnnouncementCategories(sortedCategories);
+      saveAnnouncementCategories(sortedCategories);
     } catch (err) {
       setAnnouncementCategoryError(err.message);
-      setAnnouncementCategories([]);
+      setAnnouncementCategories(getStoredAnnouncementCategories());
     } finally {
       setLoadingAnnouncementCategories(false);
     }
@@ -258,6 +288,36 @@ const SettingContent = () => {
     setCategoryForm({ name: "", description: "" });
     setEditingCategory(null);
     setShowCategoryModal(false);
+  };
+
+  const resetAnnouncementCategoryForm = () => {
+    setAnnouncementCategoryForm({ name: "" });
+    setShowAnnouncementCategoryModal(false);
+  };
+
+  const handleAddAnnouncementCategory = (e) => {
+    e.preventDefault();
+
+    const name = announcementCategoryForm.name.trim();
+    if (!name) {
+      showError("Announcement category name is required");
+      return;
+    }
+
+    const normalizedName = name.toLowerCase();
+    const exists = announcementCategories.some((category) => category.name.toLowerCase() === normalizedName);
+
+    if (exists) {
+      showError("Announcement category already exists");
+      return;
+    }
+
+    const updated = [{ name, count: 0 }, ...announcementCategories].sort((a, b) => a.name.localeCompare(b.name));
+    setAnnouncementCategories(updated);
+    saveAnnouncementCategories(updated);
+    setSuccessMessage("Announcement category added successfully");
+    setShowSuccess(true);
+    resetAnnouncementCategoryForm();
   };
 
   const openEditCategory = (category) => {
@@ -425,7 +485,7 @@ const SettingContent = () => {
               className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition font-medium"
             >
               <Plus size={20} />
-              Add Category
+              Add Event Category
             </button>
           </div>
 
@@ -501,7 +561,13 @@ const SettingContent = () => {
           <div>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-semibold text-gray-800">Announcement Categories</h3>
-              <p className="text-sm text-gray-500">Listed from existing announcements.</p>
+              <button
+                onClick={() => setShowAnnouncementCategoryModal(true)}
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg transition font-medium"
+              >
+                <Plus size={18} />
+                Add Category
+              </button>
             </div>
 
             {loadingAnnouncementCategories && <p className="text-gray-500">Loading announcement categories...</p>}
@@ -575,6 +641,54 @@ const SettingContent = () => {
                 Delete
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================== ANNOUNCEMENT CATEGORY MODAL ================== */}
+      {showAnnouncementCategoryModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/50 bg-opacity-40 backdrop-blur-sm z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-96">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-800">Add Announcement Category</h3>
+              <button
+                onClick={resetAnnouncementCategoryForm}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddAnnouncementCategory} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Category Name <span className="text-red-600">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={announcementCategoryForm.name}
+                  onChange={(e) => setAnnouncementCategoryForm({ name: e.target.value })}
+                  placeholder="e.g., Campus, General"
+                  className="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-500"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-4">
+                <button
+                  type="button"
+                  className="px-4 py-2 rounded border border-gray-300 hover:bg-gray-100 transition"
+                  onClick={resetAnnouncementCategoryForm}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 transition font-medium"
+                >
+                  Create Category
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
