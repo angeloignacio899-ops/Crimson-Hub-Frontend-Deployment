@@ -308,7 +308,7 @@ export default function SignupForm({ onFlip }) {
             </p>
 
             <div className="my-4 rounded-xl border border-[#f0c4cd] bg-[#fff5f7] px-4 py-3 text-center text-sm font-medium text-[#a00e25]">
-              Check your inbox and spam folder for the code.
+              A verification code is being sent to your email. Please check your inbox and spam folder.
             </div>
 
             <input
