@@ -20,10 +20,11 @@ export default function SignupForm({ onFlip }) {
   const [message, setMessage] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showVerificationModal, setShowVerificationModal] = useState(false);
-  const [generatedCode, setGeneratedCode] = useState("");
   const [enteredVerificationCode, setEnteredVerificationCode] = useState("");
   const [verificationError, setVerificationError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSendingCode, setIsSendingCode] = useState(false);
+  const [codeSentMessage, setCodeSentMessage] = useState("");
   const navigate = useNavigate();
   const { showError } = useError();
 
@@ -83,17 +84,32 @@ export default function SignupForm({ onFlip }) {
     }
   }, []);
 
-  const generateVerificationCode = () => {
-    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-    return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
-  };
-
   const openVerificationModal = () => {
-    const code = generateVerificationCode();
-    setGeneratedCode(code);
     setEnteredVerificationCode("");
     setVerificationError("");
+    setCodeSentMessage("");
     setShowVerificationModal(true);
+  };
+
+  const sendVerificationCode = async () => {
+    if (!form.email.trim()) {
+      setVerificationError("Please enter your email address first.");
+      return;
+    }
+
+    try {
+      setIsSendingCode(true);
+      setVerificationError("");
+      const res = await axios.post(window.API_BASE + "/api/auth/send-verification-code", {
+        email: form.email,
+        firstname: form.firstname,
+      });
+      setCodeSentMessage(res.data.msg || "A 6-digit verification code has been sent to your email.");
+    } catch (err) {
+      setVerificationError(err.response?.data?.msg || "Could not send the verification code.");
+    } finally {
+      setIsSendingCode(false);
+    }
   };
 
   const handleSubmit = (e) => {
@@ -106,25 +122,24 @@ export default function SignupForm({ onFlip }) {
 
     setMessage("");
     openVerificationModal();
+    sendVerificationCode();
   };
 
   const handleVerifyAndSubmit = async () => {
     const normalizedCode = enteredVerificationCode.trim().toUpperCase();
 
-    if (!/^[A-Z0-9]{6}$/.test(normalizedCode)) {
-      setVerificationError("Please enter a 6-character code using letters or numbers.");
-      return;
-    }
-
-    if (normalizedCode !== generatedCode.toUpperCase()) {
-      setVerificationError("The verification code you entered is incorrect.");
+    if (!/^\d{6}$/.test(normalizedCode)) {
+      setVerificationError("Please enter the 6-digit code sent to your email.");
       return;
     }
 
     try {
       setIsSubmitting(true);
       setVerificationError("");
-      const res = await axios.post(window.API_BASE + "/api/auth/signup", form);
+      const res = await axios.post(window.API_BASE + "/api/auth/signup", {
+        ...form,
+        verification_code: normalizedCode,
+      });
       setShowVerificationModal(false);
       setMessage(res.data.msg);
     } catch (err) {
@@ -288,23 +303,24 @@ export default function SignupForm({ onFlip }) {
             </div>
 
             <p className="text-sm text-gray-600">
-              We’ve prepared a 6-character verification code for <span className="font-medium text-gray-800">{form.email || "your email"}</span>.
-              Enter it below to complete your sign up.
+              We sent a 6-digit verification code to <span className="font-medium text-gray-800">{form.email || "your email"}</span>.
+              Enter it below to finish creating your account.
             </p>
 
-            <div className="my-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-center text-xl font-semibold tracking-[0.35em] text-red-700">
-              {generatedCode}
+            <div className="my-4 rounded-xl border border-[#f0c4cd] bg-[#fff5f7] px-4 py-3 text-center text-sm font-medium text-[#a00e25]">
+              Check your inbox and spam folder for the code.
             </div>
 
             <input
               type="text"
               value={enteredVerificationCode}
-              onChange={(e) => setEnteredVerificationCode(e.target.value.toUpperCase())}
+              onChange={(e) => setEnteredVerificationCode(e.target.value.replace(/\D/g, ""))}
               placeholder="Enter 6-digit code"
               maxLength={6}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 tracking-[0.35em] text-center text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
             />
 
+            {codeSentMessage && <p className="mt-2 text-sm text-green-600">{codeSentMessage}</p>}
             {verificationError && <p className="mt-2 text-sm text-red-600">{verificationError}</p>}
 
             <div className="mt-5 flex flex-wrap justify-end gap-2">
@@ -312,11 +328,12 @@ export default function SignupForm({ onFlip }) {
                 type="button"
                 onClick={() => {
                   setVerificationError("");
-                  openVerificationModal();
+                  sendVerificationCode();
                 }}
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+                disabled={isSendingCode}
+                className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-60"
               >
-                Resend Code
+                {isSendingCode ? "Sending..." : "Resend Code"}
               </button>
               <button
                 type="button"
