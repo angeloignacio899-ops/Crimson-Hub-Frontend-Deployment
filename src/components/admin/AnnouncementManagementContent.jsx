@@ -91,6 +91,7 @@ const AnnouncementManagementContent = () => {
 
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("All");
+  const [categories, setCategories] = useState([]);
 
   const [viewAnnouncement, setViewAnnouncement] = useState(null);
 
@@ -106,6 +107,15 @@ const AnnouncementManagementContent = () => {
         setFilteredAnnouncements(visible);
       })
       .catch((err) => console.error("Fetch error:", err));
+  }, []);
+
+  useEffect(() => {
+    fetch(window.API_BASE + "/api/announcements/categories")
+      .then((res) => res.json())
+      .then((data) => {
+        setCategories(Array.isArray(data) ? data : []);
+      })
+      .catch((err) => console.error("Category fetch error:", err));
   }, []);
 
   // Apply filters
@@ -132,7 +142,10 @@ const AnnouncementManagementContent = () => {
   };
 
   // Collect all category names
-  const uniqueCategories = ["All", ...new Set(announcements.map(a => a.category))];
+  const uniqueCategories = ["All", ...new Set([
+    ...announcements.map((a) => a.category).filter(Boolean),
+    ...categories.map((c) => c.category_name).filter(Boolean),
+  ])];
 
   return (
     <div className="flex-1 p-8 overflow-y-auto">

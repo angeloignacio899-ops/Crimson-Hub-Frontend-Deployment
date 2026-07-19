@@ -1,20 +1,19 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Send, UploadCloud, ArrowLeft, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useError } from "../../context/ErrorContext";
 import ConfirmationModal from "../common/ConfirmationModal";
 import SuccessModal from "../common/SuccessModal";
 
-const CATEGORIES = ["General", "Event", "Memo", "Reminder", "Urgent"];
-
 export default function AdminAnnouncementSubmissionForm() {
   const navigate = useNavigate();
   const { showError } = useError();
 
+  const [categories, setCategories] = useState([]);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    category: CATEGORIES[0],
+    category: "",
     attachment: null,
   });
 
@@ -27,6 +26,25 @@ export default function AdminAnnouncementSubmissionForm() {
     setToast({ show: true, message: msg, type });
     setTimeout(() => setToast({ show: false, message: "", type: "" }), 2500);
   };
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await fetch(window.API_BASE + "/api/announcements/categories");
+        if (!res.ok) throw new Error("Failed to load categories");
+        const data = await res.json();
+        const options = Array.isArray(data) ? data : [];
+        setCategories(options);
+        if (options.length > 0 && !formData.category) {
+          setFormData((prev) => ({ ...prev, category: options[0].category_name }));
+        }
+      } catch (err) {
+        console.error("Failed to load announcement categories", err);
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   const handleChange = (field, value) => {
     setFormData({ ...formData, [field]: value });
@@ -80,7 +98,7 @@ export default function AdminAnnouncementSubmissionForm() {
       setFormData({
         title: "",
         description: "",
-        category: CATEGORIES[0],
+        category: categories[0]?.category_name || "",
         attachment: null,
       });
     } catch (err) {
@@ -173,11 +191,15 @@ export default function AdminAnnouncementSubmissionForm() {
                   onChange={(e) => handleChange("category", e.target.value)}
                   className="w-full mt-1 px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-600 outline-none"
                 >
-                  {CATEGORIES.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
+                  {categories.length > 0 ? (
+                    categories.map((cat) => (
+                      <option key={cat.id} value={cat.category_name}>
+                        {cat.category_name}
+                      </option>
+                    ))
+                  ) : (
+                    <option value="">No categories available</option>
+                  )}
                 </select>
               </div>
             </div>
