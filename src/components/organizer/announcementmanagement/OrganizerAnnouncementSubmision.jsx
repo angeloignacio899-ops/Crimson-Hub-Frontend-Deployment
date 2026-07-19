@@ -23,11 +23,11 @@ export default function OrganizerAnnouncementSubmissionForm() {
     const [showSuccess, setShowSuccess] = useState(false);
 
     const handleChange = (field, value) => {
-        setFormData({ ...formData, [field]: value });
+        setFormData((prev) => ({ ...prev, [field]: value }));
     };
 
     const handleFileChange = (e) => {
-        setFormData({ ...formData, attachment: e.target.files[0] });
+        setFormData((prev) => ({ ...prev, attachment: e.target.files[0] }));
     };
 
     const handleSubmit = async () => {

@@ -3,7 +3,7 @@ import React from "react";
 import { Search, Filter, ChevronDown } from "lucide-react";
 
 const AnnouncementFilters = ({ searchTerm, setSearchTerm, categoryFilter, setCategoryFilter }) => {
-  const categories = ["General", "Event", "Memo", "Reminder", "Urgent"];
+  const categories = ["All", "General", "Event", "Memo", "Reminder", "Urgent"];
 
 
   return (
@@ -25,7 +25,7 @@ const AnnouncementFilters = ({ searchTerm, setSearchTerm, categoryFilter, setCat
         className="flex-shrink-0 flex items-center bg-white border border-gray-300 px-4 py-3 rounded-xl hover:bg-gray-100 text-gray-700 text-sm font-medium appearance-none"
       >
         {categories.map((cat) => (
-          <option key={cat} value={cat.toLowerCase()}>
+          <option key={cat} value={cat === "All" ? "all" : cat.toLowerCase()}>
             {cat}
           </option>
         ))}
