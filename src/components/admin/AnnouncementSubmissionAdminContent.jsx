@@ -13,6 +13,7 @@ export default function AdminAnnouncementSubmissionForm() {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
+    category_id: "",
     category: "",
     attachment: null,
   });
@@ -35,8 +36,12 @@ export default function AdminAnnouncementSubmissionForm() {
         const data = await res.json();
         const options = Array.isArray(data) ? data : [];
         setCategories(options);
-        if (options.length > 0 && !formData.category) {
-          setFormData((prev) => ({ ...prev, category: options[0].category_name }));
+        if (options.length > 0 && !formData.category_id) {
+          setFormData((prev) => ({
+            ...prev,
+            category_id: String(options[0].id),
+            category: options[0].category_name,
+          }));
         }
       } catch (err) {
         console.error("Failed to load announcement categories", err);
@@ -57,7 +62,7 @@ export default function AdminAnnouncementSubmissionForm() {
   const handleSubmit = async () => {
     if (loading) return;
 
-    const required = ["title", "description", "category"];
+    const required = ["title", "description", "category_id"];
     for (let f of required) {
       if (!formData[f]?.trim()) {
         showError(`Please fill in: ${f}`);
@@ -78,7 +83,8 @@ export default function AdminAnnouncementSubmissionForm() {
 
       formDataObj.append("title", formData.title);
       formDataObj.append("description", formData.description);
-      formDataObj.append("category", formData.category);
+      formDataObj.append("category_id", formData.category_id);
+      formDataObj.append("category", formData.category || "");
       if (formData.attachment) {
         formDataObj.append("attachment", formData.attachment);
       }
@@ -98,6 +104,7 @@ export default function AdminAnnouncementSubmissionForm() {
       setFormData({
         title: "",
         description: "",
+        category_id: categories[0]?.id ? String(categories[0].id) : "",
         category: categories[0]?.category_name || "",
         attachment: null,
       });
@@ -187,13 +194,17 @@ export default function AdminAnnouncementSubmissionForm() {
                   Category <span className="text-red-600">*</span>
                 </label>
                 <select
-                  value={formData.category}
-                  onChange={(e) => handleChange("category", e.target.value)}
+                  value={formData.category_id}
+                  onChange={(e) => {
+                    const selected = categories.find((cat) => String(cat.id) === e.target.value);
+                    handleChange("category_id", e.target.value);
+                    handleChange("category", selected?.category_name || "");
+                  }}
                   className="w-full mt-1 px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-600 outline-none"
                 >
                   {categories.length > 0 ? (
                     categories.map((cat) => (
-                      <option key={cat.id} value={cat.category_name}>
+                      <option key={cat.id} value={cat.id}>
                         {cat.category_name}
                       </option>
                     ))

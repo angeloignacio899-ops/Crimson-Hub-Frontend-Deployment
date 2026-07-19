@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 
 const CategoryTag = ({ category }) => (
   <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
-    {category}
+    {category || "Uncategorized"}
   </span>
 );
 
@@ -26,7 +26,7 @@ const ViewModal = ({ announcement, onClose }) => {
         </h2>
 
         <div className="space-y-2 text-gray-700 text-sm">
-          <p><span className="font-medium">Category:</span> {announcement.category}</p>
+          <p><span className="font-medium">Category:</span> {announcement.category_name || announcement.category || "Uncategorized"}</p>
           <p><span className="font-medium">Status:</span> {announcement.status}</p>
           <p><span className="font-medium">Created At:</span> {new Date(announcement.created_at).toLocaleString()}</p>
 
@@ -62,7 +62,7 @@ const AnnouncementRow = ({ announcement, isHighlighted, onView }) => (
     </div>
 
     <div className="col-span-3">
-      <CategoryTag category={announcement.category} />
+      <CategoryTag category={announcement.category_name || announcement.category} />
     </div>
 
     <div className="col-span-2 text-gray-600 text-xs">
