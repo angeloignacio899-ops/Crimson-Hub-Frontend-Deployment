@@ -99,8 +99,11 @@ const AnnouncementManagementContent = () => {
     fetch(window.API_BASE + "/api/announcements/approved")
       .then((res) => res.json())
       .then((data) => {
-        setAnnouncements(data);
-        setFilteredAnnouncements(data);
+        const visible = Array.isArray(data)
+          ? data.filter((item) => !(item.status && String(item.status).toLowerCase() === "archived"))
+          : [];
+        setAnnouncements(visible);
+        setFilteredAnnouncements(visible);
       })
       .catch((err) => console.error("Fetch error:", err));
   }, []);
