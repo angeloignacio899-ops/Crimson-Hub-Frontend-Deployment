@@ -242,7 +242,9 @@ const SettingContent = () => {
       });
 
       const data = await res.json();
-      if (data.success) {
+      const isSuccess = data?.success === true || data?.category_id || data?.message;
+
+      if (isSuccess) {
         setSuccessMessage(editingCategory ? "Category updated successfully" : "Category created successfully");
         setShowSuccess(true);
         fetchCategories();
@@ -272,7 +274,9 @@ const SettingContent = () => {
       });
 
       const data = await res.json();
-      if (data.success) {
+      const isSuccess = data?.success === true || data?.message;
+
+      if (isSuccess) {
         setSuccessMessage("Category deleted successfully");
         setShowSuccess(true);
         fetchCategories();
