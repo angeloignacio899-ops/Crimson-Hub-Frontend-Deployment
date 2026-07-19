@@ -208,25 +208,18 @@ const SettingContent = () => {
 
   const handleAddCategory = async (e) => {
     e.preventDefault();
-    
+
     if (!categoryForm.name.trim()) {
       showError("Category name is required");
       return;
     }
-
-    setConfirmationAction({ type: "save", isEdit: !!editingCategory });
-    setShowConfirmation(true);
-  };
-
-  const handleConfirmAddCategory = async () => {
-    setShowConfirmation(false);
 
     try {
       const token = localStorage.getItem("token");
       const url = editingCategory
         ? `${window.API_BASE}/api/categories/${editingCategory.category_id}`
         : window.API_BASE + "/api/categories";
-      
+
       const method = editingCategory ? "PUT" : "POST";
 
       const res = await fetch(url, {
@@ -258,14 +251,6 @@ const SettingContent = () => {
   };
 
   const handleDeleteCategory = async (id) => {
-    setConfirmationAction({ type: "delete", id });
-    setShowConfirmation(true);
-  };
-
-  const handleConfirmDeleteCategory = async () => {
-    setShowConfirmation(false);
-    const id = confirmationAction.id;
-
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(`${window.API_BASE}/api/categories/${id}`, {
