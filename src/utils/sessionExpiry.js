@@ -5,28 +5,20 @@ const AUTH_ENDPOINT_PATTERN =
   /(?:^|\/)(?:api\/)?auth\/(?:login|signup|verify-mfa-code|send-mfa-code|send-verification-code|forgot-password|reset-password|google\/signup)(?:\/|$)/i;
 
 export function expireSession() {
+  if (!localStorage.getItem("token")) return;
+
   localStorage.removeItem("token");
   localStorage.removeItem("role_id");
   localStorage.removeItem("userId");
   window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
 }
 
-function isSessionExpiredResponse(status, url, headers) {
+function isSessionExpiredResponse(status, url) {
   if (status !== 401) return false;
+  if (!localStorage.getItem("token")) return false;
 
   const pathname = new URL(url, window.location.origin).pathname;
-  if (AUTH_ENDPOINT_PATTERN.test(pathname)) return false;
-
-  const authorization =
-    headers?.get?.("Authorization") ??
-    headers?.Authorization ??
-    headers?.authorization;
-
-  return (
-    (typeof authorization === "string" && authorization.startsWith("Bearer ")) ||
-    Boolean(localStorage.getItem("token")) ||
-    Boolean(localStorage.getItem("role_id"))
-  );
+  return !AUTH_ENDPOINT_PATTERN.test(pathname);
 }
 
 export function setupSessionExpiryHandling() {
@@ -36,9 +28,7 @@ export function setupSessionExpiryHandling() {
     const response = await originalFetch(input, init);
     const request = input instanceof Request ? input : null;
     const url = request?.url || input;
-    const headers = init?.headers || request?.headers;
-
-    if (isSessionExpiredResponse(response.status, url, headers)) {
+    if (isSessionExpiredResponse(response.status, url)) {
       expireSession();
     }
 
@@ -55,8 +45,7 @@ export function setupSessionExpiryHandling() {
         response &&
         isSessionExpiredResponse(
           response.status,
-          config?.url || "",
-          config?.headers
+          config?.url || ""
         )
       ) {
         expireSession();
