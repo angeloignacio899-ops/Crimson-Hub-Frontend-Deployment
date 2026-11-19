@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Send, UploadCloud, ArrowLeft, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useError } from "../../../context/ErrorContext";
@@ -12,15 +12,40 @@ export default function OrganizerAnnouncementSubmissionForm() {
     const [formData, setFormData] = useState({
         title: "",
         description: "",
+        category_id: "",
         category: "",
         author: "",
         attachment: null,
     });
 
+    const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(false); 
     const [redirecting, setRedirecting] = useState(false);
     const [showConfirmation, setShowConfirmation] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
+
+    useEffect(() => {
+        let isMounted = true;
+
+        const fetchCategories = async () => {
+            try {
+                const response = await fetch(`${window.API_BASE}/api/announcements/categories`);
+                if (!response.ok) throw new Error("Failed to load announcement categories");
+
+                const data = await response.json();
+                if (isMounted) {
+                    setCategories(Array.isArray(data) ? data : []);
+                }
+            } catch (error) {
+                if (isMounted) showError(error.message);
+            }
+        };
+
+        fetchCategories();
+        return () => {
+            isMounted = false;
+        };
+    }, [showError]);
 
     const handleChange = (field, value) => {
         setFormData((prev) => ({ ...prev, [field]: value }));
@@ -31,7 +56,7 @@ export default function OrganizerAnnouncementSubmissionForm() {
     };
 
     const handleSubmit = async () => {
-        const required = ["title", "description", "category", "author"];
+        const required = ["title", "description", "category_id", "author"];
         for (let field of required) {
             if (!formData[field] || formData[field].trim() === "") {
                 showError(`Please fill in: ${field}`);
@@ -58,6 +83,7 @@ export default function OrganizerAnnouncementSubmissionForm() {
             const data = new FormData();
             data.append("title", formData.title);
             data.append("description", formData.description);
+            data.append("category_id", formData.category_id);
             data.append("category", formData.category);
             data.append("author", formData.author);
 
@@ -83,6 +109,7 @@ export default function OrganizerAnnouncementSubmissionForm() {
             setFormData({
                 title: "",
                 description: "",
+                category_id: "",
                 category: "",
                 author: "",
                 attachment: null,
@@ -169,14 +196,27 @@ export default function OrganizerAnnouncementSubmissionForm() {
                                     <label className="text-sm font-medium text-gray-600">Category *</label>
                                     <select
                                         className="w-full mt-1 px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-600 outline-none"
-                                        value={formData.category}
-                                        onChange={(e) => handleChange("category", e.target.value)}
+                                        value={formData.category_id}
+                                        disabled={categories.length === 0}
+                                        onChange={(e) => {
+                                            const selected = categories.find(
+                                                (category) => String(category.id) === e.target.value
+                                            );
+                                            setFormData((prev) => ({
+                                                ...prev,
+                                                category_id: e.target.value,
+                                                category: selected?.category_name || "",
+                                            }));
+                                        }}
                                     >
-                                        <option value="">Select category</option>
-                                        <option value="General">General</option>
-                                        <option value="Memo">Memo</option>
-                                        <option value="Reminder">Reminder</option>
-                                        <option value="Urgent">Urgent</option>
+                                        <option value="">
+                                            {categories.length ? "Select category" : "No categories available"}
+                                        </option>
+                                        {categories.map((category) => (
+                                            <option key={category.id} value={category.id}>
+                                                {category.category_name}
+                                            </option>
+                                        ))}
                                     </select>
                                 </div>
 
