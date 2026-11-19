@@ -1,4 +1,5 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
@@ -18,6 +19,8 @@ import { UserProvider } from "./context/UserContext";
 import { ErrorProvider } from "./context/ErrorContext";
 import ErrorBoundary from "./components/common/ErrorBoundary";
 import ErrorNotification from "./components/common/ErrorNotification";
+import { SESSION_EXPIRED_EVENT } from "./utils/sessionExpiry";
+import { useUser } from "./context/UserContext";
 import EventSubmissionAdminPage from "./pages/EventSubmissionAdminPage";
 import AnnouncementSubmissionAdminPage from "./pages/AnnouncementSubmissionAdminPage";
 import ViewEventPage from "./pages/ViewEventPage";
@@ -33,12 +36,32 @@ import OrganizerNotificationPage from "./pages/OrganizerNotificationPage";
 import OrganizerSettings from "./pages/OrganizerSettings";
 import AdminPendingApprovals from "./pages/AdminPendingApprovals";
 import AdminSettingPage from "./pages/AdminSettingPage";
+
+function SessionExpiryRedirect() {
+  const navigate = useNavigate();
+  const { setUser } = useUser();
+
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      setUser(null);
+      navigate("/login", { replace: true, state: { sessionExpired: true } });
+    };
+
+    window.addEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
+    return () =>
+      window.removeEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
+  }, [navigate, setUser]);
+
+  return null;
+}
+
 export default function App() {
   return (
     <ErrorProvider>
       <ErrorBoundary>
         <UserProvider>
           <Router>
+            <SessionExpiryRedirect />
             <ErrorNotification />
             <Routes>
               <Route path="/" element={<Navigate to="/login" replace />} />

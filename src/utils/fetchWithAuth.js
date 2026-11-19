@@ -31,10 +31,7 @@ export const fetchWithAuth = async (url, options = {}) => {
 
     // Handle specific status codes
     if (response.status === 401) {
-      // Unauthorized - remove token and redirect to login
-      localStorage.removeItem("token");
-      window.location.href = "/login";
-      throw new Error("Session expired. Please log in again.");
+      throw new Error("Session expired, please log in again.");
     }
 
     if (response.status === 403) {

@@ -89,6 +89,14 @@ export default function LoginPage() {
             <div className="absolute inset-0 backface-hidden flex items-center justify-center">
               <AuthCard title="Crimson Event Hub">
                 <p className="text-gray-600 mb-5">Sign In to your Account</p>
+                {location.state?.sessionExpired && (
+                  <p
+                    className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800"
+                    role="alert"
+                  >
+                    Session expired, please log in again.
+                  </p>
+                )}
                 <LoginForm
                   onFlip={() => handleFlip("/signup")}
                   setIsLoading={setIsLoading}

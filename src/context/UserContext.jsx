@@ -18,6 +18,7 @@ export function UserProvider({ children }) {
         });
         setUser(res.data);
       } catch (err) {
+        if (err.response?.status === 401) return;
         showError("Failed to load user profile");
       }
     };
