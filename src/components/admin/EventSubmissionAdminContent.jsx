@@ -130,6 +130,13 @@ export default function AdminEventSubmissionForm() {
                 }
             }
 
+            if (formData.startDate && formData.endDate && formData.endDate < formData.startDate) {
+                setFeedbackType("error");
+                setFeedbackMessage("End date cannot be before start date.");
+                setIsLoading(false);
+                return;
+            }
+
             // Create FormData
             const data = new FormData();
             Object.entries(formData).forEach(([key, value]) => value && data.append(key, value));
@@ -318,6 +325,7 @@ export default function AdminEventSubmissionForm() {
                                     <input
                                         type="date"
                                         value={formData.startDate}
+                                        max={formData.endDate || undefined}
                                         onChange={(e) => handleChange("startDate", e.target.value)}
                                         className="w-full mt-1 px-4 py-2 rounded-lg border border-gray-300"
                                         disabled={isLoading}
@@ -330,6 +338,7 @@ export default function AdminEventSubmissionForm() {
                                     <input
                                         type="date"
                                         value={formData.endDate}
+                                        min={formData.startDate || undefined}
                                         onChange={(e) => handleChange("endDate", e.target.value)}
                                         className="w-full mt-1 px-4 py-2 rounded-lg border border-gray-300"
                                         disabled={isLoading}
