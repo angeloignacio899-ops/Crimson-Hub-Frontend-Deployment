@@ -4,7 +4,7 @@ import axios from "axios";
 import { useError } from "../../context/ErrorContext";
 
 export default function EditAdminModal({ isOpen, onClose, user, setUser }) {
-  const { showError } = useError();
+  const { showError, showSuccess } = useError();
   const [formData, setFormData] = useState({
     firstname: "",
     lastname: "",
@@ -87,7 +87,7 @@ export default function EditAdminModal({ isOpen, onClose, user, setUser }) {
 
         setUser(userRes.data);
         onClose();
-        showError("Profile updated successfully!", 3000);
+        showSuccess("Profile updated successfully!", 3000);
     } catch (err) {
         const message = err.response?.data?.message || "Failed to update profile.";
         showError(message);

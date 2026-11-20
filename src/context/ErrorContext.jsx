@@ -1,23 +1,48 @@
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
 
 const ErrorContext = createContext();
 
 export const ErrorProvider = ({ children }) => {
-  const [error, setError] = useState(null);
+  const [notification, setNotification] = useState(null);
+  const timeoutRef = useRef(null);
 
-  const showError = useCallback((message, timeout = 5000) => {
-    setError(message);
+  const showNotification = useCallback((message, type, timeout) => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = null;
+    setNotification({ message, type });
     if (timeout > 0) {
-      setTimeout(() => setError(null), timeout);
+      timeoutRef.current = setTimeout(() => {
+        setNotification(null);
+        timeoutRef.current = null;
+      }, timeout);
     }
   }, []);
 
+  const showError = useCallback(
+    (message, timeout = 5000) => showNotification(message, "error", timeout),
+    [showNotification]
+  );
+
+  const showSuccess = useCallback(
+    (message, timeout = 5000) => showNotification(message, "success", timeout),
+    [showNotification]
+  );
+
   const clearError = useCallback(() => {
-    setError(null);
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = null;
+    setNotification(null);
   }, []);
 
+  useEffect(
+    () => () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    },
+    []
+  );
+
   return (
-    <ErrorContext.Provider value={{ error, showError, clearError }}>
+    <ErrorContext.Provider value={{ notification, showError, showSuccess, clearError }}>
       {children}
     </ErrorContext.Provider>
   );
