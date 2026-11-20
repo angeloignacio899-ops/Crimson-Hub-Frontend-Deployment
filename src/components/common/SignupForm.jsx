@@ -1,12 +1,12 @@
 import { UserRound, Mail, KeyRound, Phone, Building, Eye, EyeOff } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Button from "./Button";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { useError } from "../../context/ErrorContext";
 import { useGoogleInit } from "../../hooks/useGoogleInit";
 
-export default function SignupForm({ onFlip }) {
+export default function SignupForm() {
   const [form, setForm] = useState({
     firstname: "",
     lastname: "",
@@ -27,6 +27,14 @@ export default function SignupForm({ onFlip }) {
   const [codeSentMessage, setCodeSentMessage] = useState("");
   const navigate = useNavigate();
   const { showError } = useError();
+  const redirectTimerRef = useRef(null);
+
+  useEffect(
+    () => () => {
+      if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current);
+    },
+    []
+  );
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -72,11 +80,11 @@ export default function SignupForm({ onFlip }) {
 
   useEffect(() => {
     if (window.google && document.getElementById("googleSignUpButton")) {
-      google.accounts.id.renderButton(
+      window.google.accounts.id.renderButton(
         document.getElementById("googleSignUpButton"), 
         { 
-          theme: "outline", 
-          size: "large", 
+          theme: "outline",
+          size: "large",
           type: "standard",
           width: "360"
         }
@@ -141,7 +149,11 @@ export default function SignupForm({ onFlip }) {
         verification_code: normalizedCode,
       });
       setShowVerificationModal(false);
-      setMessage(res.data.msg);
+      setMessage(`${res.data.msg || "Signup successful."} Redirecting to login in 5 seconds.`);
+      redirectTimerRef.current = setTimeout(() => {
+        navigate("/login", { replace: true });
+        redirectTimerRef.current = null;
+      }, 5000);
     } catch (err) {
       setShowVerificationModal(false);
       setMessage(err.response?.data?.msg || "Signup failed");

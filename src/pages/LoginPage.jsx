@@ -124,7 +124,7 @@ export default function LoginPage() {
             <div className="absolute inset-0 backface-hidden rotate-y-180 flex items-center justify-center">
               <AuthCard title="Crimson Event Hub">
                 <p className="text-gray-600 mb-5">Create your Account</p>
-                <SignupForm onFlip={() => handleFlip("/login")} />
+                <SignupForm />
               </AuthCard>
             </div>
           </div>

@@ -15,7 +15,7 @@ export const useGoogleInit = (componentId, callback) => {
         });
       };
 
-      google.accounts.id.initialize({
+      window.google.accounts.id.initialize({
         client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
         callback: globalCallback,
       });
