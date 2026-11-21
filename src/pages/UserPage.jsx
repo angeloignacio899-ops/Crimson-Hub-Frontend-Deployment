@@ -131,7 +131,7 @@ export default function UserPage() {
           {/* Tab Content */}
           <div className="mt-8">
             {activeTab === "info" && <ProfileTab user={user} />}
-            {activeTab === "joined" && <RegisteredTab />}
+            {activeTab === "joined" && <RegisteredTab userId={user.id} />}
           </div>
         </div>
       </main>
