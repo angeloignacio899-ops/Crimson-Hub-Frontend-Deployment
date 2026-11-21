@@ -272,6 +272,7 @@ function EditUserModal({ user, onClose, onSave }) {
 
 // 🟨 User row in table
 const UserRow = ({ user, isHighlighted, onViewClick, onEditClick, onDeleteClick }) => {
+  const canDelete = ["inactive", "banned"].includes((user.status || "").toLowerCase());
   // Format last_active nicely
   const formattedLastActive = user.last_active
     ? new Date(user.last_active).toLocaleString("en-PH", {
@@ -319,8 +320,14 @@ const UserRow = ({ user, isHighlighted, onViewClick, onEditClick, onDeleteClick 
           <Edit size={16} />
         </button>
         <button
+          disabled={!canDelete}
           onClick={() => onDeleteClick(user)}
-          className="text-gray-500 hover:text-red-600 p-1 rounded-full hover:bg-red-50 transition"
+          title={canDelete ? "Delete account" : "Only inactive or banned accounts can be deleted"}
+          className={`p-1 rounded-full transition ${
+            canDelete
+              ? "text-gray-500 hover:text-red-600 hover:bg-red-50"
+              : "text-gray-300 cursor-not-allowed"
+          }`}
         >
           <Trash2 size={16} />
         </button>
@@ -361,9 +368,22 @@ export default function UserManagementContent() {
 
   // Delete user
   const handleConfirmDelete = async (userId) => {
-    const success = await deleteUser(userId);
-    if (success) setUsers((prev) => prev.filter((u) => u.user_id !== userId));
-    setSelectedUser(null);
+    try {
+      const success = await deleteUser(userId);
+      if (success) {
+        setUsers((prev) => prev.filter((u) => u.user_id !== userId));
+      } else {
+        showError("Account could not be deleted.");
+      }
+    } catch (err) {
+      showError(
+        err.response?.data?.error ||
+        err.response?.data?.message ||
+        "Failed to delete account."
+      );
+    } finally {
+      setSelectedUser(null);
+    }
   };
 
   // Confirm organizer requests before changing their account status.

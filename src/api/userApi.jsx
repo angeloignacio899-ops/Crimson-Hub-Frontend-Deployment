@@ -58,13 +58,8 @@ export const fetchUsers = async () => {
 
 // Delete user
 export const deleteUser = async (id) => {
-  try {
-    const res = await api.delete(`/${id}`);
-    return res.data.success === true;
-  } catch (err) {
-    // Return false on error without console logging
-    return false;
-  }
+  const res = await api.delete(`/${id}`);
+  return res.data.success === true;
 };
 
 // Update user
