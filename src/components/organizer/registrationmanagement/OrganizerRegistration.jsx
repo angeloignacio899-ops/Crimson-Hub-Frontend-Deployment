@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Eye, ChevronLeft, Search, Filter, ChevronDown } from 'lucide-react';
+import { Download, Eye, ChevronLeft, Search, Filter, ChevronDown } from 'lucide-react';
 
 const OrganizerRegistrationPage = () => {
   const [events, setEvents] = useState([]);
@@ -9,6 +9,8 @@ const OrganizerRegistrationPage = () => {
   const [attendees, setAttendees] = useState([]);
   const [loadingAttendees, setLoadingAttendees] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [generatingPdf, setGeneratingPdf] = useState(false);
+  const [pdfError, setPdfError] = useState('');
 
   const token = localStorage.getItem('token');
 
@@ -33,6 +35,7 @@ const OrganizerRegistrationPage = () => {
   // Fetch attendees when an event is selected
   const handleSelectEvent = async (event) => {
     setSelectedEvent(event);
+    setAttendees([]);
     setLoadingAttendees(true);
     try {
       const res = await axios.get(`${window.API_BASE}/api/events/attendees/${event.event_id}`, {
@@ -44,6 +47,99 @@ const OrganizerRegistrationPage = () => {
       setAttendees([]);
     } finally {
       setLoadingAttendees(false);
+    }
+  };
+
+  const handleDownloadAttendees = async () => {
+    if (!selectedEvent || attendees.length === 0) return;
+
+    setGeneratingPdf(true);
+    setPdfError('');
+    try {
+      const [{ jsPDF }, { default: autoTable }] = await Promise.all([
+        import('jspdf'),
+        import('jspdf-autotable'),
+      ]);
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const eventTitle = selectedEvent.title || 'Event';
+      const titleLines = doc.splitTextToSize(eventTitle, pageWidth - 32);
+      const headerHeight = 24 + titleLines.length * 8;
+      const eventDate = selectedEvent.start_date || selectedEvent.date;
+      const parsedEventDate = eventDate ? new Date(eventDate) : null;
+      const formattedEventDate = parsedEventDate && !Number.isNaN(parsedEventDate.getTime())
+        ? parsedEventDate.toLocaleDateString(undefined, { timeZone: 'UTC' })
+        : eventDate || 'Not specified';
+      const generatedDate = new Date().toLocaleString();
+      const filename = `${eventTitle.replace(/[<>:"/\\|?*]/g, '-').trim() || 'event'}-attendees.pdf`;
+
+      doc.setFillColor(185, 28, 28);
+      doc.rect(0, 0, pageWidth, headerHeight, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(18);
+      doc.text(titleLines, 16, 16);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.text('ATTENDEE LIST', 16, headerHeight - 7);
+
+      doc.setTextColor(55, 65, 81);
+      doc.setFontSize(10);
+      doc.text(`Event date: ${formattedEventDate}`, 16, headerHeight + 12);
+      doc.text(`Total attendees: ${attendees.length}`, 16, headerHeight + 20);
+      doc.text(`Generated: ${generatedDate}`, 16, headerHeight + 28);
+
+      autoTable(doc, {
+        startY: headerHeight + 36,
+        head: [['#', 'First name', 'Last name', 'Email']],
+        body: attendees.map((attendee, index) => [
+          String(index + 1),
+          attendee.firstname || '-',
+          attendee.lastname || '-',
+          attendee.email || '-',
+        ]),
+        margin: { left: 16, right: 16, bottom: 20 },
+        styles: {
+          font: 'helvetica',
+          fontSize: 9,
+          cellPadding: 3,
+          overflow: 'linebreak',
+          textColor: [31, 41, 55],
+          lineColor: [229, 231, 235],
+          lineWidth: 0.2,
+        },
+        headStyles: {
+          fillColor: [185, 28, 28],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+        },
+        alternateRowStyles: { fillColor: [249, 250, 251] },
+        columnStyles: {
+          0: { cellWidth: 12, halign: 'center' },
+          1: { cellWidth: 38 },
+          2: { cellWidth: 38 },
+          3: { cellWidth: 'auto' },
+        },
+      });
+
+      const pageCount = doc.internal.getNumberOfPages();
+      for (let pageNumber = 1; pageNumber <= pageCount; pageNumber += 1) {
+        doc.setPage(pageNumber);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(107, 114, 128);
+        doc.text('Crimson Event Hub - Attendee List', 16, doc.internal.pageSize.getHeight() - 8);
+        doc.text(`Page ${pageNumber} of ${pageCount}`, pageWidth - 16, doc.internal.pageSize.getHeight() - 8, {
+          align: 'right',
+        });
+      }
+
+      doc.save(filename);
+    } catch (error) {
+      console.error('Failed to generate attendee PDF:', error);
+      setPdfError('Unable to generate the attendee PDF. Please try again.');
+    } finally {
+      setGeneratingPdf(false);
     }
   };
 
@@ -116,7 +212,24 @@ const OrganizerRegistrationPage = () => {
               <ChevronLeft size={20} className="mr-2"/> Back
             </button>
 
-            <h2 className="text-2xl font-bold mb-1">{selectedEvent.title} Attendees</h2>
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-2xl font-bold mb-1">{selectedEvent.title} Attendees</h2>
+                {!loadingAttendees && attendees.length > 0 && (
+                  <p className="text-sm text-gray-500">{attendees.length} registered attendee{attendees.length === 1 ? '' : 's'}</p>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={handleDownloadAttendees}
+                disabled={loadingAttendees || generatingPdf || attendees.length === 0}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+              >
+                <Download size={17} />
+                {generatingPdf ? 'Preparing PDF...' : 'Download PDF'}
+              </button>
+            </div>
+            {pdfError && <p role="alert" className="mb-4 text-sm text-red-600">{pdfError}</p>}
             {loadingAttendees ? (
               <p>Loading attendees...</p>
             ) : attendees.length === 0 ? (
