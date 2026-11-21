@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useError } from "../../context/ErrorContext";
 import ConfirmationModal from "../common/ConfirmationModal";
 import SuccessModal from "../common/SuccessModal";
+import { fetchWithAuth } from "../../utils/fetchWithAuth.js";
 
 // --- Role mappings ---
 const ROLE_MAP = { 1: "Student", 2: "Organizer", 3: "Admin" };
@@ -71,7 +72,7 @@ const StatusTag = ({ status }) => {
 };
 
 // 🟦 VIEW USER MODAL
-function ViewUserModal({ user, onClose, onApprove }) {
+function ViewUserModal({ user, onClose, onApprove, onReject }) {
   if (!user) return null;
 
   return (
@@ -135,13 +136,21 @@ function ViewUserModal({ user, onClose, onApprove }) {
           </div>
 
           {/* Approve button only for pending organizers */}
-          {user.status === "pending" && user.role_id === null && (
-            <button
-              onClick={() => onApprove(user)}
-              className="w-full px-4 py-2 mt-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition"
-            >
-              Approve Organizer
-            </button>
+          {(user.status || "").toLowerCase() === "pending" && user.role_id === null && (
+            <div className="flex gap-3 mt-2">
+              <button
+                onClick={() => onApprove(user)}
+                className="flex-1 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition"
+              >
+                Approve Organizer
+              </button>
+              <button
+                onClick={() => onReject(user)}
+                className="flex-1 px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition"
+              >
+                Reject Request
+              </button>
+            </div>
           )}
         </motion.div>
       </motion.div>
@@ -335,8 +344,11 @@ export default function UserManagementContent() {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [pendingUser, setPendingUser] = useState(null);
+  const [pendingOrganizerAction, setPendingOrganizerAction] = useState(null);
   const [pendingChanges, setPendingChanges] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [successTitle, setSuccessTitle] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
   // Load users
   useEffect(() => {
@@ -354,38 +366,55 @@ export default function UserManagementContent() {
     setSelectedUser(null);
   };
 
-  // Approve organizer - show confirmation first
-  const approveOrganizer = (user) => {
+  // Confirm organizer requests before changing their account status.
+  const requestOrganizerAction = (user, action) => {
     setPendingUser(user);
+    setPendingOrganizerAction(action);
     setShowConfirmation(true);
   };
 
-  // Confirm organizer approval
-  const handleConfirmApproval = async () => {
-    setShowConfirmation(false);
-    if (!pendingUser) return;
+  // Approve or reject a pending organizer request.
+  const handleConfirmOrganizerAction = async () => {
+    const user = pendingUser;
+    const action = pendingOrganizerAction;
+    if (!user || !action) return;
+
+    setIsSaving(true);
 
     try {
-      const res = await fetch(window.API_BASE + "/api/admin/approve-organizer", {
+      const isApproval = action === "approve";
+      const endpoint = isApproval ? "approve-organizer" : "reject-organizer";
+      const res = await fetchWithAuth(`${window.API_BASE}/api/admin/${endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: pendingUser.user_id }),
+        body: JSON.stringify({ user_id: user.user_id }),
       });
 
       const data = await res.json();
-      if (res.ok) {
-        setUsers((prev) =>
-          prev.map((u) =>
-            u.user_id === pendingUser.user_id ? { ...u, status: "Active", role_id: 2 } : u
-          )
-        );
-        setShowSuccess(true);
-        setViewUser(null);
-      } else showError(data.msg || "Failed to approve user");
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.user_id === user.user_id
+            ? { ...u, status: isApproval ? "Active" : "Rejected", role_id: isApproval ? 2 : u.role_id }
+            : u
+        )
+      );
+      setSuccessTitle(isApproval ? "Organizer Approved" : "Organizer Request Rejected");
+      setSuccessMessage(
+        isApproval
+          ? `${user.firstname} ${user.lastname} has been approved as an organizer.`
+          : data.emailSent
+            ? `${user.firstname} ${user.lastname}'s organizer request was rejected and an email was sent.`
+            : `${user.firstname} ${user.lastname}'s organizer request was rejected, but the notification email could not be sent.`
+      );
+      setShowSuccess(true);
+      setViewUser(null);
     } catch (err) {
-      showError("Error approving user");
+      showError(err.message || `Error ${action === "approve" ? "approving" : "rejecting"} organizer request`);
     } finally {
+      setShowConfirmation(false);
       setPendingUser(null);
+      setPendingOrganizerAction(null);
+      setIsSaving(false);
     }
   };
 
@@ -400,6 +429,8 @@ export default function UserManagementContent() {
       setUsers((prev) =>
         prev.map((u) => (u.user_id === pendingChanges.user_id ? { ...u, ...pendingChanges } : u))
       );
+      setSuccessTitle("User Updated");
+      setSuccessMessage("User information has been updated successfully.");
       setShowSuccess(true);
       setEditUser(null);
       setPendingChanges(null);
@@ -512,27 +543,36 @@ export default function UserManagementContent() {
       </div>
 
       {/* Modals */}
-      {viewUser && <ViewUserModal user={viewUser} onClose={() => setViewUser(null)} onApprove={approveOrganizer} />}
+      {viewUser && (
+        <ViewUserModal
+          user={viewUser}
+          onClose={() => setViewUser(null)}
+          onApprove={(user) => requestOrganizerAction(user, "approve")}
+          onReject={(user) => requestOrganizerAction(user, "reject")}
+        />
+      )}
 
       {/* Confirmation Modal */}
       <ConfirmationModal
-        isOpen={showConfirmation}
-        title="Approve Organizer"
-        message={`Are you sure you want to approve ${pendingUser?.firstname} ${pendingUser?.lastname} as an organizer?`}
-        confirmText="Approve"
-        isDangerous={false}
-        onConfirm={handleConfirmApproval}
+        isOpen={showConfirmation && !!pendingOrganizerAction}
+        title={pendingOrganizerAction === "reject" ? "Reject Organizer Request" : "Approve Organizer"}
+        message={`Are you sure you want to ${pendingOrganizerAction === "reject" ? "reject" : "approve"} ${pendingUser?.firstname} ${pendingUser?.lastname}'s organizer request?`}
+        confirmText={pendingOrganizerAction === "reject" ? "Reject" : "Approve"}
+        isDangerous={pendingOrganizerAction === "reject"}
+        isLoading={isSaving}
+        onConfirm={handleConfirmOrganizerAction}
         onCancel={() => {
           setShowConfirmation(false);
           setPendingUser(null);
+          setPendingOrganizerAction(null);
         }}
       />
 
       {/* Success Modal */}
       <SuccessModal
         isOpen={showSuccess}
-        title="Organizer Approved"
-        message={`${pendingUser?.firstname} ${pendingUser?.lastname} has been approved as an organizer.`}
+        title={successTitle}
+        message={successMessage}
         actionText="OK"
         autoCloseMs={2000}
         onClose={() => setShowSuccess(false)}
@@ -569,16 +609,6 @@ export default function UserManagementContent() {
           setPendingChanges(null);
         }}
         isLoading={isSaving}
-      />
-
-      {/* Edit User Success Modal */}
-      <SuccessModal
-        isOpen={showSuccess && !pendingUser}
-        title="User Updated"
-        message="User information has been updated successfully."
-        actionText="OK"
-        autoCloseMs={2000}
-        onClose={() => setShowSuccess(false)}
       />
     </div>
   );
