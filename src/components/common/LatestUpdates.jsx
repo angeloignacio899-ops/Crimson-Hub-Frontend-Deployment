@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import Button from "./Button";
 import AnnouncementCard from "./AnnouncementCard";
+import { getEventStatus } from "../../utils/getEventStatus.js";
 
 export default function LatestUpdates() {
   const [announcements, setAnnouncements] = useState([]);
@@ -14,7 +15,7 @@ export default function LatestUpdates() {
     "Non-Academic",
   ];
 
-  const statuses = ["All", "Upcoming", "Ongoing", "Completed", "Cancelled"];
+  const statuses = ["All", "Upcoming", "Ongoing", "Ended"];
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -30,9 +31,9 @@ export default function LatestUpdates() {
       })
       .then((data) => {
         // Filter only approved events
-        const approvedEvents = data.filter(
-          (event) => event.approval_status.toLowerCase() === "approved"
-        );
+        const approvedEvents = data
+          .filter((event) => event.approval_status.toLowerCase() === "approved")
+          .map((event) => ({ ...event, status: getEventStatus(event) }));
 
         // Sort newest first (by created_at)
         approvedEvents.sort(

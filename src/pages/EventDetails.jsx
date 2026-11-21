@@ -11,6 +11,7 @@ import ConfirmationModal from "../components/common/ConfirmationModal";
 import SuccessModal from "../components/common/SuccessModal";
 import { useError } from "../context/ErrorContext";
 import axios from "axios";
+import { getEventStatus } from "../utils/getEventStatus.js";
 
 export default function EventDetails() {
   const { id } = useParams();
@@ -165,7 +166,7 @@ export default function EventDetails() {
 
               <span className="flex items-center gap-1 bg-green-100 text-green-700 px-3 py-1 rounded-full">
                 <div className="w-2 h-2 bg-green-500 rounded-full" />{" "}
-                {event.status || "Upcoming"}
+                {getEventStatus(event)}
               </span>
             </div>
 

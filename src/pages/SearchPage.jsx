@@ -3,6 +3,7 @@ import Navbar from "../components/common/Navbar";
 import FiltersSidebar from "../components/common/FiltersSidebar";
 import { useNavigate } from "react-router-dom";
 import { useError } from "../context/ErrorContext";
+import { getEventStatus } from "../utils/getEventStatus.js";
 
 // --------------------------------------------------
 // DATE FORMATTER
@@ -45,6 +46,7 @@ export default function SearchPage() {
 
         const eventList = events.map((e) => ({
           ...e,
+          status: getEventStatus(e),
           source: "event",
           displayDate: e.event_date,
           formattedDate: formatDate(e.event_date),

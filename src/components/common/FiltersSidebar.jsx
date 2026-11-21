@@ -71,7 +71,7 @@ const FiltersSidebar = ({ onClearAll, onFilterChange }) => {
 
       {/* Status Section */}
       <Section title="Status">
-        {["Upcoming", "Ongoing"].map((status) => (
+        {["Upcoming", "Ongoing", "Ended"].map((status) => (
           <Checkbox
             key={status}
             label={status}
