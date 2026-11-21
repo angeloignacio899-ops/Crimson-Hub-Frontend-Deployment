@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Download, Eye, ChevronLeft, Search, Filter, ChevronDown } from 'lucide-react';
+import { Download, Eye, ChevronLeft, Search, ChevronDown } from 'lucide-react';
+
+const getEventCategory = (event) => (event.category_name || event.category || '').trim();
 
 const OrganizerRegistrationPage = () => {
   const [events, setEvents] = useState([]);
@@ -9,6 +11,7 @@ const OrganizerRegistrationPage = () => {
   const [attendees, setAttendees] = useState([]);
   const [loadingAttendees, setLoadingAttendees] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
   const [generatingPdf, setGeneratingPdf] = useState(false);
   const [pdfError, setPdfError] = useState('');
 
@@ -143,10 +146,17 @@ const OrganizerRegistrationPage = () => {
     }
   };
 
-  const filteredEvents = events.filter(
-    e => e.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-         (e.category_name?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-  );
+  const categories = [...new Set(events.map(getEventCategory).filter(Boolean))]
+    .sort((first, second) => first.localeCompare(second));
+  const normalizedSearch = searchTerm.toLowerCase();
+  const filteredEvents = events.filter((event) => {
+    const category = getEventCategory(event);
+    const matchesSearch = (event.title || '').toLowerCase().includes(normalizedSearch)
+      || category.toLowerCase().includes(normalizedSearch);
+    const matchesCategory = !categoryFilter
+      || category.toLowerCase() === categoryFilter.toLowerCase();
+    return matchesSearch && matchesCategory;
+  });
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
@@ -170,13 +180,22 @@ const OrganizerRegistrationPage = () => {
               />
             </div>
 
-            <div className="flex gap-3 flex-wrap">
-              <button className="flex items-center gap-2 bg-white border border-gray-300 px-4 py-2 rounded-xl text-gray-700 hover:bg-gray-100 transition text-sm font-medium">
-                <Filter size={16}/> Status
-              </button>
-              <button className="flex items-center gap-2 bg-white border border-gray-300 px-4 py-2 rounded-xl text-gray-700 hover:bg-gray-100 transition text-sm font-medium">
-                All Categories <ChevronDown size={16}/>
-              </button>
+            <div className="relative w-full md:w-56">
+              <select
+                aria-label="Filter events by category"
+                value={categoryFilter}
+                onChange={(event) => setCategoryFilter(event.target.value)}
+                className="w-full appearance-none rounded-xl border border-gray-300 bg-white px-4 py-3 pr-10 text-sm font-medium text-gray-700 focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500"
+              >
+                <option value="">All Categories</option>
+                {categories.map((category) => (
+                  <option key={category} value={category}>{category}</option>
+                ))}
+              </select>
+              <ChevronDown
+                size={16}
+                className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-500"
+              />
             </div>
           </div>
         )}
@@ -199,7 +218,7 @@ const OrganizerRegistrationPage = () => {
                 ) : filteredEvents.map(event => (
                   <tr key={event.event_id} className="hover:bg-red-50 cursor-pointer" onClick={() => handleSelectEvent(event)}>
                     <td className="p-4">{event.title}</td>
-                    <td className="p-4 hidden sm:table-cell">{event.category_name}</td>
+                    <td className="p-4 hidden sm:table-cell">{getEventCategory(event) || '-'}</td>
                     <td className="p-4 text-center"><Eye size={18} className="text-gray-400 hover:text-red-600 mx-auto"/></td>
                   </tr>
                 ))}
