@@ -91,6 +91,7 @@ function ViewModal({ item, onClose, onApprove, onReject, isLoading }) {
                 <p><span className="font-semibold">Title:</span> {item.title}</p>
                 <p><span className="font-semibold">Category:</span> {item.category}</p>
                 <p><span className="font-semibold">Organizer:</span> {item.organizer_name}</p>
+                <p><span className="font-semibold">Created by:</span> {item.creator_name || "Unknown"}</p>
                 <p><span className="font-semibold">Location:</span> {item.location || "TBA"}</p>
                 <p>
                   <span className="font-semibold">Start Date & Time:</span>{" "}
@@ -132,6 +133,7 @@ function ViewModal({ item, onClose, onApprove, onReject, isLoading }) {
               <p><span className="font-semibold">Title:</span> {item.title}</p>
               <p><span className="font-semibold">Category:</span> {item.category}</p>
               <p><span className="font-semibold">Author:</span> {item.author}</p>
+              <p><span className="font-semibold">Created by:</span> {item.creator_name || "Unknown"}</p>
               <p>
                 <span className="font-semibold">Date & Time Created:</span>{" "}
                 {formatDateTime(item.created_at)}
